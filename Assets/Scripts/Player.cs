@@ -11,7 +11,35 @@ public class Player : NetworkBehaviour //даем системе понять, что это сетевой об
     public int Health;
     public GameObject[] HealthIndicators;
 
-    void Update()
+    public GameObject BulletPrefab;
+
+    private void Update()
+    {
+        PlayerDamage();
+        SpawnBullet();
+        PlayerMovement();
+        UpdateHealthIndicators();
+    }
+
+    public void SpawnBullet()
+    {
+        if (isOwned) //проверяем, есть ли у нас права изменять этот объект
+        {
+          if (Input.GetKeyDown(KeyCode.Mouse1))
+          {
+            Vector3 pos = Input.mousePosition;
+            pos.z = 10f;
+            pos = Camera.main.ScreenToWorldPoint(pos);
+
+            if (isServer)
+                SpawnBullet(netId, pos);
+            else
+                CmdSpawnBullet(netId, pos);
+          }
+        }
+    }
+
+    public void PlayerDamage()
     {
         if (isOwned) //проверяем, есть ли у нас права изменять этот объект
         {
@@ -23,11 +51,9 @@ public class Player : NetworkBehaviour //даем системе понять, что это сетевой об
                     CmdChangeHealth(Health - 1); //в противном случае делаем на сервер запрос об изменении переменной
             }
         }
-        PlayerMovement();
-        UpdateHealthIndicators();
     }
 
-    void PlayerMovement()
+    public void PlayerMovement()
     {
         if (isOwned) 
         {
@@ -38,7 +64,7 @@ public class Player : NetworkBehaviour //даем системе понять, что это сетевой об
         }
     }
 
-    void UpdateHealthIndicators()
+    public void UpdateHealthIndicators()
     {
         for (int i = 0; i < HealthIndicators.Length; i++)
         {
@@ -56,6 +82,10 @@ public class Player : NetworkBehaviour //даем системе понять, что это сетевой об
     public void ChangeHealthValue(int newValue)
     {
         _SyncHealth = newValue;
+        if (_SyncHealth <= 0)
+        {
+            NetworkServer.Destroy(gameObject);
+        }
     }
 
     [Command] //обозначаем, что этот метод должен будет выполняться на сервере по запросу клиента
@@ -63,4 +93,21 @@ public class Player : NetworkBehaviour //даем системе понять, что это сетевой об
     {
         ChangeHealthValue(newValue); //переходим к непосредственному изменению переменной
     }
+
+    // Спавн пули на сервере
+    [Server]
+    public void SpawnBullet(uint owner, Vector3 target)
+    {
+        GameObject bulletGo = Instantiate(BulletPrefab, transform.position, Quaternion.identity); //Создаем локальный объект пули на сервере
+        NetworkServer.Spawn(bulletGo); //отправляем информацию о сетевом объекте всем игрокам.
+        bulletGo.GetComponent<Bullet>().Init(owner, target); //инициализируем поведение пули
+    }
+    [Command]
+    // Запрос на спавн пули со стороны клиента
+    public void CmdSpawnBullet(uint owner, Vector3 target)
+    {
+        SpawnBullet(owner, target);
+    }
+
+
 }
