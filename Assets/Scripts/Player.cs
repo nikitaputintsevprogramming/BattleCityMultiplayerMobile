@@ -1,113 +1,132 @@
 using Mirror;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Player : NetworkBehaviour //даем системе понять, что это сетевой объект
+//mark the object as a network object by inheriting from NetworkBehaviour
+//помечаем объект как сетевой, унаследовавшись от NetworkBehaviour
+public class Player : NetworkBehaviour
 {
+    //set the method to be called when the variable is synced
+    //задаем метод, который будет выполняться при синхронизации переменной
+    [SyncVar(hook = nameof(SyncHealth))]
+    private int _syncHealth;
+    [field: SerializeField]
+    public int Health { get; private set; }
 
-    [SyncVar(hook = nameof(SyncHealth))] //задаем метод, который будет выполняться при синхронизации переменной
-    int _SyncHealth;
-    public int Health;
-    public GameObject[] HealthIndicators;
+    [SerializeField]
+    private GameObject[] healthGos;
 
-    public GameObject BulletPrefab;
+    [SerializeField]
+    private GameObject bulletPrefab;
 
-    private void Update()
+    void Update()
     {
-        PlayerDamage();
-        SpawnBullet();
-        PlayerMovement();
-        UpdateHealthIndicators();
-    }
-
-    public void SpawnBullet()
-    {
-        if (isOwned) //проверяем, есть ли у нас права изменять этот объект
+        //check the ownershop of the object
+        //проверяем, есть ли у нас права изменять этот объект
+        if (isOwned)
         {
-          if (Input.GetKeyDown(KeyCode.Mouse1))
-          {
-            Vector3 pos = Input.mousePosition;
-            pos.z = 10f;
-            pos = Camera.main.ScreenToWorldPoint(pos);
-
-            if (isServer)
-                SpawnBullet(netId, pos);
-            else
-                CmdSpawnBullet(netId, pos);
-          }
-        }
-    }
-
-    public void PlayerDamage()
-    {
-        if (isOwned) //проверяем, есть ли у нас права изменять этот объект
-        {
-            if (Input.GetKeyDown(KeyCode.H)) //отнимаем у себя жизнь по нажатию клавиши H
-            {
-                if (isServer) //если мы являемся сервером, то переходим к непосредственному изменению переменной
-                    ChangeHealthValue(Health - 1);
-                else
-                    CmdChangeHealth(Health - 1); //в противном случае делаем на сервер запрос об изменении переменной
-            }
-        }
-    }
-
-    public void PlayerMovement()
-    {
-        if (isOwned) 
-        {
+            //make a simple movement
+            //делаем простейшее движение
             float h = Input.GetAxis("Horizontal");
             float v = Input.GetAxis("Vertical");
             float speed = 5f * Time.deltaTime;
-            transform.Translate(new Vector2(h * speed, v * speed));
-        }
-    }
+            transform.Rotate(new Vector2(h * speed, v * speed));
 
-    public void UpdateHealthIndicators()
-    {
-        for (int i = 0; i < HealthIndicators.Length; i++)
+            //take HP from self by pressing the H key
+            //отнимаем у себя жизнь по нажатию клавиши H
+            if (Input.GetKeyDown(KeyCode.H))
+            {
+                //if we are the server, then go to the changing of the variable
+                //если мы являемся сервером, то переходим к непосредственному изменению переменной
+                if (isServer)
+                {
+                    ChangeHealthValue(Health - 1);
+                }
+                else
+                {
+                    //in other case, send a change request to the server
+                    //в противном случае делаем на сервер запрос об изменении переменной
+                    CmdChangeHealth(Health - 1);
+                }
+            }
+
+
+            if (Input.GetKeyDown(KeyCode.Mouse1))
+            {
+                Vector3 pos = Input.mousePosition;
+                pos.z = 10f;
+                pos = Camera.main.ScreenToWorldPoint(pos);
+
+                if (isServer)
+                {
+                    SpawnBullet(netId, pos);
+                }
+                else
+                {
+                    CmdSpawnBullet(netId, pos);
+                }
+            }
+        }
+
+        for (int i = 0; i < healthGos.Length; i++)
         {
-            HealthIndicators[i].SetActive(!(Health - 1 < i));
+            healthGos[i].SetActive(!(Health - 1 < i));
         }
+
+   
     }
 
-    //метод не выполнится, если старое значение равно новому
-    void SyncHealth(int oldValue, int newValue) //обязательно делаем два значения - старое и новое. 
+    //sync hook always required two values - old and new
+    //обязательно делаем два значения - старое и новое
+    void SyncHealth(int oldValue, int newValue)
     {
         Health = newValue;
     }
 
-    [Server] //обозначаем, что этот метод будет вызываться и выполняться только на сервере
+    //mark the method for calling and executing only on the server
+    //обозначаем, что этот метод будет вызываться и выполняться только на сервере
+    [Server]
     public void ChangeHealthValue(int newValue)
     {
-        _SyncHealth = newValue;
-        if (_SyncHealth <= 0)
+        _syncHealth = newValue;
+
+        if (_syncHealth <= 0)
         {
             NetworkServer.Destroy(gameObject);
         }
     }
 
-    [Command] //обозначаем, что этот метод должен будет выполняться на сервере по запросу клиента
-    public void CmdChangeHealth(int newValue) //обязательно ставим Cmd в начале названия метода
+    //mark the method for calling on the client and executing on the server
+    //обозначаем, что этот метод должен будет выполняться на сервере по запросу клиента
+    [Command]
+    //be sure to put Cmd at the beginning of the method name
+    //обязательно ставим Cmd в начале названия метода
+    public void CmdChangeHealth(int newValue)
     {
-        ChangeHealthValue(newValue); //переходим к непосредственному изменению переменной
+        //переходим к непосредственному изменению переменной
+        ChangeHealthValue(newValue);
     }
 
-    // Спавн пули на сервере
+
     [Server]
     public void SpawnBullet(uint owner, Vector3 target)
     {
-        GameObject bulletGo = Instantiate(BulletPrefab, transform.position, Quaternion.identity); //Создаем локальный объект пули на сервере
-        NetworkServer.Spawn(bulletGo); //отправляем информацию о сетевом объекте всем игрокам.
-        bulletGo.GetComponent<Bullet>().Init(owner, target); //инициализируем поведение пули
+        //create a local object of the bullet on the server
+        //создаем локальный объект пули на сервере
+        GameObject bulletGo = Instantiate(bulletPrefab, this.transform.position, this.transform.rotation);
+
+        //send info about the network object to all players
+        //отправляем информацию о сетевом объекте всем игрокам
+        NetworkServer.Spawn(bulletGo);
+
+        //init the bullet behaviour
+        //инициализируем поведение пули
+        bulletGo.GetComponent<Bullet>().Init(owner, target);
     }
+
     [Command]
-    // Запрос на спавн пули со стороны клиента
     public void CmdSpawnBullet(uint owner, Vector3 target)
     {
         SpawnBullet(owner, target);
     }
-
-
 }

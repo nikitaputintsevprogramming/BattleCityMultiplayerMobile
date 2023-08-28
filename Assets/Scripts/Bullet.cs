@@ -1,44 +1,60 @@
 using Mirror;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class Bullet : NetworkBehaviour
 {
-    uint owner;
-    bool inited;
-    Vector3 target;
+    private uint _owner;
+    private bool _inited;
+    private Vector3 _target;
 
     [Server]
     public void Init(uint owner, Vector3 target)
     {
-        this.owner = owner; //кто сделал выстрел
-        this.target = target; //куда должна лететь пуля
-        inited = true;
+        //who did the shot
+        //кто сделал выстрел
+        _owner = owner;
+
+        //where the bullet should go
+        //куда должна лететь пуля
+        _target = target;
+        _inited = true;
+    }
+
+    void Start()
+    {
+        GetComponent<Rigidbody2D>().AddForce(transform.forward * 1000f);
     }
 
     void Update()
     {
-        if (inited && isServer)
+        if (_inited && isServer)
         {
-            transform.Translate((target - transform.position).normalized * 0.04f);
+            //transform.Translate((_target - transform.position).normalized * 0.04f);
 
             foreach (var item in Physics2D.OverlapCircleAll(transform.position, 0.5f))
             {
                 Player player = item.GetComponent<Player>();
                 if (player)
                 {
-                    if (player.netId != owner)
+                    if (player.netId != _owner)
                     {
-                        player.ChangeHealthValue(player.Health - 1); //отнимаем одну жизнь по аналогии с примером SyncVar
-                        NetworkServer.Destroy(gameObject); //уничтожаем пулю
+                        //take one HP by analogy with the SyncVar example
+                        //отнимаем одну жизнь по аналогии с примером SyncVar
+                        player.ChangeHealthValue(player.Health - 1);
+                        //destroy the bullet
+                        //уничтожаем пулю
+                        NetworkServer.Destroy(gameObject);
                     }
                 }
             }
 
-            if (Vector3.Distance(transform.position, target) < 0.1f) //пуля достигла конечной точки
+            //bullet has reached the final destination
+            //пуля достигла конечной точки
+            if (Vector3.Distance(transform.position, _target) < 0.1f)
             {
-                NetworkServer.Destroy(gameObject); //значит ее можно уничтожить
+                //then we should destroy it
+                //значит ее можно уничтожить
+                NetworkServer.Destroy(gameObject);
             }
         }
     }
