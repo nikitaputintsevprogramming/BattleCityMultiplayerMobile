@@ -19,61 +19,82 @@ public class Player : NetworkBehaviour
     [SerializeField]
     private GameObject bulletPrefab;
 
+    private Joystick _jstick;
+
+    private void Start()
+    {
+        _jstick = GameObject.FindGameObjectWithTag("Joystick").GetComponent<Joystick>();
+    }
     void Update()
     {
         //check the ownershop of the object
         //проверяем, есть ли у нас права изменять этот объект
         if (isOwned)
         {
-            //make a simple movement
-            //делаем простейшее движение
-            float h = Input.GetAxis("Horizontal");
-            float v = Input.GetAxis("Vertical");
-            float speed = 5f * Time.deltaTime;
-            transform.Rotate(new Vector2(h * speed, v * speed));
+            Movement();
+            Damage();
+            SpawnBullet();
+        }
+        UpdateHelathBar();
 
-            //take HP from self by pressing the H key
-            //отнимаем у себя жизнь по нажатию клавиши H
-            if (Input.GetKeyDown(KeyCode.H))
+        print(_jstick.Horizontal()+ " "+ _jstick.Vertical());
+    }
+
+    public void Movement()
+    {
+        float h = _jstick.Horizontal();
+        float v = _jstick.Vertical();
+        float speed = 5f * Time.deltaTime;
+        transform.Translate(transform.up * -v * speed);
+        transform.Rotate(transform.forward * -h * speed);
+    }
+
+    public void Damage()
+    {
+        //take HP from self by pressing the H key
+        //отнимаем у себя жизнь по нажатию клавиши H
+        if (Input.GetKeyDown(KeyCode.H))
+        {
+            //if we are the server, then go to the changing of the variable
+            //если мы являемся сервером, то переходим к непосредственному изменению переменной
+            if (isServer)
             {
-                //if we are the server, then go to the changing of the variable
-                //если мы являемся сервером, то переходим к непосредственному изменению переменной
-                if (isServer)
-                {
-                    ChangeHealthValue(Health - 1);
-                }
-                else
-                {
-                    //in other case, send a change request to the server
-                    //в противном случае делаем на сервер запрос об изменении переменной
-                    CmdChangeHealth(Health - 1);
-                }
+                ChangeHealthValue(Health - 1);
             }
-
-
-            if (Input.GetKeyDown(KeyCode.Mouse1))
+            else
             {
-                Vector3 pos = Input.mousePosition;
-                pos.z = 10f;
-                pos = Camera.main.ScreenToWorldPoint(pos);
-
-                if (isServer)
-                {
-                    SpawnBullet(netId, pos);
-                }
-                else
-                {
-                    CmdSpawnBullet(netId, pos);
-                }
+                //in other case, send a change request to the server
+                //в противном случае делаем на сервер запрос об изменении переменной
+                CmdChangeHealth(Health - 1);
             }
         }
+    }
 
+    public void SpawnBullet()
+    {
+        if (Input.GetKeyDown(KeyCode.Mouse1))
+        {
+            Vector3 pos = Input.mousePosition;
+            pos.z = 10f;
+            pos = Camera.main.ScreenToWorldPoint(pos);
+
+            if (isServer)
+            {
+                SpawnBullet(netId, pos);
+            }
+            else
+            {
+                CmdSpawnBullet(netId, pos);
+            }
+        }
+    }
+
+    public void UpdateHelathBar()
+    {
         for (int i = 0; i < healthGos.Length; i++)
         {
             healthGos[i].SetActive(!(Health - 1 < i));
         }
-
-   
     }
 
     //sync hook always required two values - old and new

@@ -7,6 +7,8 @@ public class Bullet : NetworkBehaviour
     private bool _inited;
     private Vector3 _target;
 
+    public float BulletSpeed = 1000f;
+
     [Server]
     public void Init(uint owner, Vector3 target)
     {
@@ -22,7 +24,7 @@ public class Bullet : NetworkBehaviour
 
     void Start()
     {
-        GetComponent<Rigidbody2D>().AddForce(transform.forward * 1000f);
+        GetComponent<Rigidbody2D>().AddForce(transform.up * BulletSpeed);
     }
 
     void Update()
