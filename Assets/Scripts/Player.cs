@@ -20,10 +20,12 @@ public class Player : NetworkBehaviour
     private GameObject bulletPrefab;
 
     private Joystick _jstick;
+    private View _view;
 
     private void Start()
     {
         _jstick = GameObject.FindGameObjectWithTag("Joystick").GetComponent<Joystick>();
+        _view = Camera.main.GetComponent<View>();
     }
     void Update()
     {
@@ -44,7 +46,16 @@ public class Player : NetworkBehaviour
         float v = _jstick.Vertical();
         float speedTranslate = 5f * Time.deltaTime;
         float speedRotate = 50f * Time.deltaTime;
+
+        if (transform.position.x > _view.max.x || transform.position.x < _view.min.x || transform.position.y > _view.max.y || transform.position.y < _view.min.y)
+        {
+            speedTranslate *= -1;
+            speedRotate = 10f;
+        }
+        
         transform.position += transform.up * -v * speedTranslate;
+        
+        
         transform.Rotate(transform.forward * h * speedRotate);
     }
 
