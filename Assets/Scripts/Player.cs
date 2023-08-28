@@ -36,17 +36,16 @@ public class Player : NetworkBehaviour
             SpawnBullet();
         }
         UpdateHelathBar();
-
-        print(_jstick.Horizontal()+ " "+ _jstick.Vertical());
     }
 
     public void Movement()
     {
         float h = _jstick.Horizontal();
         float v = _jstick.Vertical();
-        float speed = 5f * Time.deltaTime;
-        transform.Translate(transform.up * -v * speed);
-        transform.Rotate(transform.forward * -h * speed);
+        float speedTranslate = 5f * Time.deltaTime;
+        float speedRotate = 50f * Time.deltaTime;
+        transform.position += transform.up * -v * speedTranslate;
+        transform.Rotate(transform.forward * h * speedRotate);
     }
 
     public void Damage()

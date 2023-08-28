@@ -40,7 +40,7 @@ public class Joystick : MonoBehaviour, IDragHandler, IPointerUpHandler, IPointer
             inputVector = new Vector2(pos.x * 2, pos.y * 2); // ”становка точных координат из касани€ по формуле
             inputVector = (inputVector.magnitude > 1.0f) ? inputVector.normalized : inputVector;
 
-            Joystick_Drag.rectTransform.anchoredPosition = new Vector2(inputVector.x * (Joystick_BG.rectTransform.sizeDelta.x / 1.080f), inputVector.y * (Joystick_BG.rectTransform.sizeDelta.y / 1.920f));
+            Joystick_Drag.rectTransform.anchoredPosition = new Vector2(inputVector.x * (Joystick_BG.rectTransform.sizeDelta.x / 0.1080f), inputVector.y * (Joystick_BG.rectTransform.sizeDelta.y / 0.1920f));
         }
     }
 
