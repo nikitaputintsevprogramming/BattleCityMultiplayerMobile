@@ -1,6 +1,7 @@
 using Mirror;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 //mark the object as a network object by inheriting from NetworkBehaviour
 //помечаем объект как сетевой, унаследовавшись от NetworkBehaviour
@@ -18,13 +19,36 @@ public class Player : NetworkBehaviour
 
     [SerializeField]
     private GameObject bulletPrefab;
+    public GameObject FireButton;
 
     private Joystick _jstick;
 
     private void Start()
     {
-        _jstick = GameObject.FindGameObjectWithTag("Joystick").GetComponent<Joystick>();
+        if (isOwned)
+        {
+            _jstick = GameObject.FindGameObjectWithTag("Joystick").GetComponent<Joystick>();
+            Button btn = GameObject.FindGameObjectWithTag("ButtonFIre").GetComponent<Button>();
+            btn.onClick.AddListener(TaskOnClick);
+        }
     }
+
+    void TaskOnClick()
+    {
+        Vector3 pos = Input.mousePosition;
+        pos.z = 10f;
+        pos = Camera.main.ScreenToWorldPoint(pos);
+
+        if (isServer)
+        {
+            SpawnBullet(netId, pos);
+        }
+        else
+        {
+            CmdSpawnBullet(netId, pos);
+        }
+    }
+
     void Update()
     {
         //check the ownershop of the object
@@ -33,7 +57,7 @@ public class Player : NetworkBehaviour
         {
             Movement();
             Damage();
-            SpawnBullet();
+            //SpawnBullet();
         }
         UpdateHelathBar();
     }
@@ -69,26 +93,26 @@ public class Player : NetworkBehaviour
         }
     }
 
-    public void SpawnBullet()
-    {
-        if (Input.GetKeyDown(KeyCode.Mouse1))
-        {
-            Vector3 pos = Input.mousePosition;
-            pos.z = 10f;
-            pos = Camera.main.ScreenToWorldPoint(pos);
+    //public void SpawnBullet()
+    //{
+    //    if (Input.GetKeyDown(KeyCode.Mouse1))
+    //    {
+    //        Vector3 pos = Input.mousePosition;
+    //        pos.z = 10f;
+    //        pos = Camera.main.ScreenToWorldPoint(pos);
+            //if (isServer)
+            //{
+            //    SpawnBullet(netId, pos);
+            //}
+            //else
+            //{
+            //    CmdSpawnBullet(netId, pos);
+            //}
 
-            if (isServer)
-            {
-                SpawnBullet(netId, pos);
-            }
-            else
-            {
-                CmdSpawnBullet(netId, pos);
-            }
-        }
-    }
+//    }
+//}
 
-    public void UpdateHelathBar()
+public void UpdateHelathBar()
     {
         for (int i = 0; i < healthGos.Length; i++)
         {

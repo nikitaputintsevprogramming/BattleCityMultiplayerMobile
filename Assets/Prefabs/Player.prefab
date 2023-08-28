@@ -522,7 +522,6 @@ MonoBehaviour:
   syncInterval: 0
   <Health>k__BackingField: 4
   healthGos:
-  - {fileID: 9078243737509773903}
   - {fileID: 5189540863434212555}
   - {fileID: 1563239958241611035}
   - {fileID: 2567048009986620444}
