@@ -18,11 +18,13 @@ public class Player : NetworkBehaviour
 
     private int _pointsCount;
     private Joystick _joystick;
+    private View _view;
 
     private void Start()
     {
         GameObject.FindGameObjectWithTag("ButtonFIre").GetComponent<Button>().onClick.AddListener(Fire);
         _joystick = GameObject.FindGameObjectWithTag("Joystick").GetComponent<Joystick>();
+        _view = Camera.main.GetComponent<View>();
     }
 
     void Update() 
@@ -34,6 +36,12 @@ public class Player : NetworkBehaviour
             float speedRotate = 50f * Time.deltaTime;
             transform.Translate(new Vector2(0f, v * speedMove));
             transform.Rotate(0f, 0f, -h * speedRotate);
+
+            if (transform.position.x < _view.min.x || transform.position.x > _view.max.x ||
+                transform.position.y < _view.min.y || transform.position.y > _view.max.y)
+            {
+                transform.position = Vector3.MoveTowards(this.transform.position, new Vector2(_view.max.x/2f, _view.max.y/2f), 70f * Time.deltaTime);
+            }
         }
 
         for (int i = 0; i < healthGos.Length; i++) 
