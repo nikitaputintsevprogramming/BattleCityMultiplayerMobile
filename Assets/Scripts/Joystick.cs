@@ -1,70 +1,59 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.EventSystems;
 
-public class Joystick : MonoBehaviour, IDragHandler, IPointerUpHandler, IPointerDownHandler
+#pragma warning disable 0649
+
+public class Joystick : MonoBehaviour, IDragHandler, IEndDragHandler
 {
-    public Image Joystick_BG;
-    public Image Joystick_Drag;
-    private Vector2 inputVector; // полученные координаты джойстика
 
-    void Start()
-    {
-        Joystick_BG = GetComponent<Image>();
-        Joystick_Drag = GetComponent<Image>();
-    }
+    [SerializeField] GameObject Handle;
 
-    public virtual void OnPointerDown(PointerEventData ped)
-    {
-        OnDrag(ped);
-    }
+    [SerializeField] float MoveRadius;
 
-    public virtual void OnPointerUp(PointerEventData ped)
-    {
-        // Reset джойстика
-        inputVector = Vector2.zero;
-        Joystick_Drag.rectTransform.anchoredPosition = Vector2.zero;
-    }
+    static Joystick instance;
 
-    public virtual void OnDrag(PointerEventData ped)
+    private Vector3 offset;
+    public Vector2 inputVector;
+
+    public static Vector2 Position
     {
-        Vector2 pos;
-        if (RectTransformUtility.ScreenPointToLocalPointInRectangle(Joystick_BG.rectTransform, ped.position, ped.pressEventCamera, out pos));
+        get 
         {
-            // Выведем результаты джойстика относительно бэкграунда точки касания и удержания
-            pos.x = (pos.x / Joystick_BG.rectTransform.sizeDelta.x);
-            pos.y = (pos.y / Joystick_BG.rectTransform.sizeDelta.y);
-
-            inputVector = new Vector2(pos.x * 2, pos.y * 2); // Установка точных координат из касания по формуле
-            inputVector = (inputVector.magnitude > 1.0f) ? inputVector.normalized : inputVector;
-
-            Joystick_Drag.rectTransform.anchoredPosition = new Vector2(inputVector.x * (Joystick_BG.rectTransform.sizeDelta.x / 0.1080f), inputVector.y * (Joystick_BG.rectTransform.sizeDelta.y / 0.1920f));
+            return (instance.Handle.transform.position - instance.gameObject.transform.position).normalized;
         }
+    }
+
+
+    private void Start()
+    {
+        instance = this;
+    }
+
+    public void OnDrag(PointerEventData eventData)
+    {
+        Vector3 inputPosition = Camera.main.ScreenToWorldPoint(eventData.position);
+        Vector3 offset = inputPosition - gameObject.transform.position;
+
+        offset = new Vector3(offset.x, offset.y, 0);
+        Handle.gameObject.transform.position = gameObject.transform.position + Vector3.ClampMagnitude(offset, MoveRadius);
+
+        inputVector = new Vector2(offset.x, offset.y);
+    }
+
+    public void OnEndDrag(PointerEventData eventData)
+    {
+        Handle.gameObject.transform.localPosition = Vector3.zero;
+        inputVector = Vector2.zero;
     }
 
     public float Horizontal()
     {
-        if (inputVector.x != 0)
-        {
-            return inputVector.x;
-        }
-        else
-        {
-            return 0f;
-        }
+        return inputVector.x;
     }
 
     public float Vertical()
     {
-        if (inputVector.y != 0)
-        {
-            return inputVector.y;
-        }
-        else
-        {
-            return 0f;
-        }
+        return inputVector.y;
     }
+
 }

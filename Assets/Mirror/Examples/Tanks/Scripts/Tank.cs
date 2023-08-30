@@ -54,7 +54,6 @@ namespace Mirror.Examples.Tanks
             }
         }
 
-        // this is called on the server
         [Command]
         void CmdFire()
         {
@@ -63,7 +62,6 @@ namespace Mirror.Examples.Tanks
             RpcOnFire();
         }
 
-        // this is called on the tank that fired for all observers
         [ClientRpc]
         void RpcOnFire()
         {
